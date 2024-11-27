@@ -1,0 +1,71 @@
+body {
+    background-color: #f8f9fa;
+}
+
+.navbar-brand {
+    font-size: 1.5rem;
+    display: flex;
+    align-items: center;
+}
+
+.navbar-brand i {
+    margin-right: 10px;
+}
+
+.card {
+    border: none;
+    border-radius: 15px;
+}
+
+.card-title {
+    font-weight: bold;
+}
+
+.btn-primary {
+    background-color: #007aff;
+    border-color: #007aff;
+}
+
+.btn-primary:hover {
+    background-color: #006ae6;
+    border-color: #006ae6;
+}
+
+.btn-success {
+    background-color: #34c759;
+    border-color: #34c759;
+}
+
+.btn-success:hover {
+    background-color: #30b251;
+    border-color: #30b251;
+}
+
+.btn-link {
+    color: #007aff;
+}
+
+.btn-link:hover {
+    color: #005bb5;
+    text-decoration: none;
+}
+
+.alert {
+    border-radius: 10px;
+}
+
+#countdownTimer {
+    font-weight: bold;
+}
+
+.modal-content {
+    border-radius: 20px;
+}
+
+.modal-body i {
+    display: block;
+}
+
+.modal-body p {
+    font-size: 1.2rem;
+}

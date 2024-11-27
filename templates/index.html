@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Verificação</title>
+    <!-- Link para o arquivo CSS personalizado -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/styles.css') }}">
+    <!-- Bootstrap CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Font Awesome CSS -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body>
+    <!-- Cabeçalho com o ícone do robô -->
+    <header class="mb-5 text-center">
+        <i class="fas fa-robot logo"></i>
+    </header>
+
+    <div class="container">
+        <h1 class="text-center mb-4">Verificação de Código</h1>
+        <!-- Formulário para enviar o código -->
+        <form id="sendCodeForm" class="mt-4">
+            <div class="form-group mb-3">
+                <label for="name">Nome do Perfil (Máximo 25 caracteres)</label>
+                <input type="text" id="name" name="name" class="form-control" placeholder="Digite seu nome" maxlength="25" required>
+            </div>
+            <div class="form-group mb-3">
+                <label for="contact">Contato (Número de Telefone)</label>
+                <input type="text" id="contact" name="contact" class="form-control" placeholder="+5511912345678" required>
+            </div>
+            <div class="form-group mb-3">
+                <label for="method">Escolha o Método</label>
+                <select id="method" name="method" class="form-select" required>
+                    <option value="sms">Texto (SMS)</option>
+                    <option value="voice">Voz</option>
+                    <option value="whatsapp">WhatsApp</option>
+                </select>
+            </div>
+            <button type="submit" class="btn btn-primary w-100">Enviar Código</button>
+        </form>
+
+        <!-- Div para exibir as mensagens -->
+        <div id="resultMessage" class="mt-4 text-center"></div>
+
+        <!-- Formulário para validar o código -->
+        <form id="validateCodeForm" class="mt-4" style="display: none;">
+            <div class="form-group mb-3">
+                <label for="inputCode">Código de Verificação</label>
+                <input type="text" id="inputCode" name="inputCode" class="form-control" placeholder="Digite o código recebido" required>
+            </div>
+            <button type="submit" class="btn btn-success w-100">Validar Código</button>
+            <p id="countdownTimer" class="mt-3"></p>
+        </form>
+
+        <!-- Botão para reenviar o código -->
+        <button id="resendButton" class="btn btn-warning w-100 mt-3" style="display: none;">Reenviar Código</button>
+    </div>
+
+    <!-- Scripts -->
+    <script>
+        let countdownInterval;
+
+        document.getElementById('sendCodeForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const name = document.getElementById('name').value;
+            const contact = document.getElementById('contact').value;
+            const method = document.getElementById('method').value;
+
+            const response = await fetch('/send_code', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ name, contact, method })
+            });
+
+            const result = await response.json();
+            const resultDiv = document.getElementById('resultMessage');
+
+            // Limpar conteúdo anterior
+            resultDiv.innerHTML = '';
+
+            // Exibir mensagens mesmo em caso de erro
+            let content = '';
+
+            if (result.pre_message) {
+                content += `<p><strong>${result.pre_message}</strong></p>`;
+            }
+
+            if (result.sent_message) {
+                content += `<p><strong>Mensagem que será enviada:</strong> ${result.sent_message}</p>`;
+            }
+
+            if (result.total_chars) {
+                content += `<p><strong>Quantidade de caracteres:</strong> ${result.total_chars}</p>`;
+            }
+
+            // Remover referência à imagem
+            // if (result.image_url) {
+            //     content += `<img src="${result.image_url}" alt="Imagem" class="result-image">`;
+            // }
+
+            if (result.error) {
+                content += `<p class="text-danger">${result.error}</p>`;
+            } else if (result.message) {
+                content += `<p class="text-success">${result.message}</p>`;
+                // Mostrar formulário de validação e botão de reenviar
+                document.getElementById('validateCodeForm').style.display = 'block';
+                document.getElementById('resendButton').style.display = 'block';
+                // Iniciar contador regressivo
+                startCountdown(60);
+            }
+
+            resultDiv.innerHTML = content;
+
+            // Armazenar o contato para validar o código
+            document.getElementById('validateCodeForm').dataset.contact = contact;
+        });
+
+        document.getElementById('validateCodeForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const code = document.getElementById('inputCode').value;
+            const contact = document.getElementById('validateCodeForm').dataset.contact;
+
+            const response = await fetch('/validate_code', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ code, contact })
+            });
+
+            const result = await response.json();
+            const resultDiv = document.getElementById('resultMessage');
+
+            if (result.error) {
+                resultDiv.innerHTML = `<p class="text-danger">${result.error}</p>`;
+            } else if (result.message) {
+                resultDiv.innerHTML = `<p class="text-success">${result.message}</p>`;
+                // Parar o contador
+                clearInterval(countdownInterval);
+            }
+        });
+
+        document.getElementById('resendButton').addEventListener('click', () => {
+            // Resetar o formulário e ocultar o formulário de validação
+            document.getElementById('sendCodeForm').reset();
+            document.getElementById('validateCodeForm').style.display = 'none';
+            document.getElementById('resendButton').style.display = 'none';
+            document.getElementById('resultMessage').innerHTML = '';
+            document.getElementById('countdownTimer').innerHTML = '';
+            clearInterval(countdownInterval);
+        });
+
+        function startCountdown(duration) {
+            let timer = duration, minutes, seconds;
+            const countdownElement = document.getElementById('countdownTimer');
+            countdownInterval = setInterval(() => {
+                minutes = parseInt(timer / 60, 10);
+                seconds = parseInt(timer % 60, 10);
+
+                minutes = minutes < 10 ? "0" + minutes : minutes;
+                seconds = seconds < 10 ? "0" + seconds : seconds;
+
+                countdownElement.textContent = `O código expira em ${minutes}:${seconds}`;
+
+                if (--timer < 0) {
+                    clearInterval(countdownInterval);
+                    countdownElement.textContent = "O código expirou. Por favor, clique em Reenviar Código.";
+                }
+            }, 1000);
+        }
+    </script>
+</body>
+</html>
